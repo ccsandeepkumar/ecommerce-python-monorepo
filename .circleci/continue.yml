@@ -4,35 +4,49 @@ jobs:
   pytest-runner:
     docker:
       - image: cimg/python:3.10
+
     steps:
       - checkout
 
+      # ---------- STEP 1: Detect changes SAFELY ----------
       - run:
           name: Decide whether to run tests
           command: |
-            echo "🔍 Checking changed files..."
+            set -e
 
-            CHANGED_FILES=$(git diff --name-only origin/main...HEAD)
+            echo "🔍 Detecting changed files..."
 
-            echo "Changed files:"
+            # Ensure base branch exists (CircleCI shallow clone fix)
+            git fetch origin main
+
+            BASE_BRANCH="origin/main"
+
+            CHANGED_FILES=$(git diff --name-only "$BASE_BRANCH"...HEAD || true)
+
+            echo "📂 Changed files:"
             echo "$CHANGED_FILES"
 
-            FILE_COUNT=$(echo "$CHANGED_FILES" | wc -l | tr -d ' ')
-            
+            # Remove empty lines & count
+            FILE_COUNT=$(echo "$CHANGED_FILES" | sed '/^$/d' | wc -l | tr -d ' ')
+
+            # STRICT RULE:
+            # Only ONE file must change AND it must be filtered_list.txt
             if [ "$FILE_COUNT" -ne 1 ] || ! echo "$CHANGED_FILES" | grep -qx "filtered_list.txt"; then
-              echo "⏭ filtered_list.txt is NOT the only changed file."
-              echo "⏭ Skipping test execution."
+              echo "⏭ Tests will NOT run."
+              echo "Reason: filtered_list.txt is not the only changed file."
               exit 0
             fi
 
-            echo "✅ Only filtered_list.txt changed. Proceeding..."
+            echo "✅ Only filtered_list.txt changed. Proceeding to test execution."
 
+      # ---------- STEP 2: Install deps ----------
       - run:
           name: Install dependencies
           command: |
             pip install --upgrade pip
             pip install -r requirements.txt
 
+      # ---------- STEP 3: Run ONLY filtered tests ----------
       - run:
           name: Run tests from filtered_list.txt
           command: |
