@@ -1,27 +1,42 @@
 version: 2.1
 
-parameters:
-  run-tests:
-    type: boolean
-    default: false
-
 jobs:
   pytest-runner:
     docker:
       - image: cimg/python:3.10
     steps:
       - checkout
+
       - run:
           name: Install dependencies
           command: |
             pip install --upgrade pip
             pip install -r requirements.txt
+
       - run:
-          name: Run all tests
-          command: pytest
+          name: Run tests from filtered_list.txt
+          command: |
+            if [ ! -f filtered_list.txt ]; then
+              echo "❌ filtered_list.txt not found"
+              exit 1
+            fi
+
+            TEST_FILES=$(cat filtered_list.txt \
+              | tr -d ' ' \
+              | tr ',' ' ' \
+              | xargs)
+
+            if [ -z "$TEST_FILES" ]; then
+              echo "❌ filtered_list.txt is empty"
+              exit 1
+            fi
+
+            echo "✅ Running filtered test files:"
+            echo "$TEST_FILES"
+
+            pytest $TEST_FILES
 
 workflows:
   test-workflow:
-    when: << pipeline.parameters.run-tests >>
     jobs:
       - pytest-runner
