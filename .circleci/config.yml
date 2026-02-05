@@ -11,14 +11,13 @@ jobs:
       - image: cimg/python:3.10
     steps:
       - checkout
+
       - continuation/continue:
           configuration_path: .circleci/continue.yml
           parameters:
-            run-tests: true
+            run-tests: "true"   # ✅ MUST BE STRING
 
 workflows:
   setup-workflow:
     jobs:
       - detect-and-continue
-
-      
