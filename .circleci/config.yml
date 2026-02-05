@@ -14,8 +14,10 @@ jobs:
 
       - continuation/continue:
           configuration_path: .circleci/continue.yml
-          parameters:
-            run-tests: "true"   # ✅ MUST BE STRING
+          parameters: |
+            {
+              "run-tests": "true"
+            }
 
 workflows:
   setup-workflow:
