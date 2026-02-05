@@ -14,10 +14,8 @@ jobs:
 
       - continuation/continue:
           configuration_path: .circleci/continue.yml
-          parameters: |
-            {
-              "run-tests": "true"
-            }
+          parameters:
+            run-tests: true   # ✅ BOOLEAN
 
 workflows:
   setup-workflow:
