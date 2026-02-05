@@ -8,6 +8,26 @@ jobs:
       - checkout
 
       - run:
+          name: Decide whether to run tests
+          command: |
+            echo "🔍 Checking changed files..."
+
+            CHANGED_FILES=$(git diff --name-only origin/main...HEAD)
+
+            echo "Changed files:"
+            echo "$CHANGED_FILES"
+
+            FILE_COUNT=$(echo "$CHANGED_FILES" | wc -l | tr -d ' ')
+            
+            if [ "$FILE_COUNT" -ne 1 ] || ! echo "$CHANGED_FILES" | grep -qx "filtered_list.txt"; then
+              echo "⏭ filtered_list.txt is NOT the only changed file."
+              echo "⏭ Skipping test execution."
+              exit 0
+            fi
+
+            echo "✅ Only filtered_list.txt changed. Proceeding..."
+
+      - run:
           name: Install dependencies
           command: |
             pip install --upgrade pip
@@ -31,7 +51,7 @@ jobs:
               exit 1
             fi
 
-            echo "✅ Running filtered test files:"
+            echo "🚀 Running ONLY these tests:"
             echo "$TEST_FILES"
 
             pytest $TEST_FILES
