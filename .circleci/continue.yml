@@ -1,0 +1,33 @@
+version: 2.1
+
+parameters:
+  run-tests:
+    type: boolean
+    default: false
+
+jobs:
+  pytest-runner:
+    docker:
+      - image: cimg/python:3.10
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            pip install --upgrade pip
+            pip install -r requirements.txt
+      - run:
+          name: Run Unit Tests
+          command: pytest -m unit
+      - run:
+          name: Run Integration Tests
+          command: pytest -m integration
+      - run:
+          name: Run E2E Tests
+          command: pytest -m e2e
+
+workflows:
+  test-workflow:
+    when: << pipeline.parameters.run-tests >>
+    jobs:
+      - pytest-runner
