@@ -2,35 +2,26 @@ import pytest
 import logging
 from services.cart.service import add_item
 from services.checkout.service import checkout
-from services.order.service import create_order
 
 logging.basicConfig(level=logging.INFO)
 
-@pytest.mark.e2e
-@pytest.mark.testrail("1510")
-def test_e2e_checkout_success():
-    logging.info("TestRail ID: 1510 - E2E checkout success started")
+@pytest.mark.integration
+@pytest.mark.testrail("1512")
+def test_cart_to_checkout_flow():
+    logging.info("TestRail ID: 1512 - Cart to checkout integration started")
 
     cart = add_item([], 'apple')
     assert checkout(cart)
 
-    order = create_order(cart)
-    assert order['status'] == 'CREATED'
-
-    logging.info("TestRail ID: 1510 - E2E checkout success completed")
+    logging.info("TestRail ID: 1512 - Cart to checkout integration completed")
 
 
-@pytest.mark.e2e
-@pytest.mark.testrail("1511")
-def test_e2e_checkout_multiple_items():
-    logging.info("TestRail ID: 1511 - E2E checkout with multiple items started")
+@pytest.mark.integration
+@pytest.mark.testrail("1513")
+def test_checkout_fails_with_empty_cart():
+    logging.info("TestRail ID: 1513 - Checkout with empty cart started")
 
     cart = []
-    cart = add_item(cart, 'apple')
-    cart = add_item(cart, 'banana')
+    assert checkout(cart) is False
 
-    assert checkout(cart)
-    order = create_order(cart)
-    assert len(order['items']) == 2
-
-    logging.info("TestRail ID: 1511 - E2E checkout with multiple items completed")
+    logging.info("TestRail ID: 1513 - Checkout with empty cart completed")
