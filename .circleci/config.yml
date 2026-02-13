@@ -8,14 +8,12 @@ jobs:
     steps:
       - checkout
  
-      # ✅ Install dependencies
       - run:
           name: Install Requirements
           command: |
             pip install -r requirements.txt
             pip install pytest
  
-      # ✅ Run pytest + generate test report XML + save logs
       - run:
           name: Run Pytest Tests
           command: |
@@ -25,16 +23,13 @@ jobs:
               --junitxml=test-results/pytest-results.xml \
 > pytest.log 2>&1 || true
  
-      # ✅ Upload structured test results (CircleCI parses pass/fail)
       - store_test_results:
           path: test-results
  
-      # ✅ Upload full console log for stack traces
       - store_artifacts:
           path: pytest.log
           destination: pytest.log
  
-      # ✅ Upload XML report as artifact also
       - store_artifacts:
           path: test-results/pytest-results.xml
           destination: pytest-results.xml
