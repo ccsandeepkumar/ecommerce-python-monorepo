@@ -12,7 +12,6 @@ jobs:
   detect-and-continue:
     docker:
       - image: cimg/python:3.10
- 
     steps:
       - checkout
  
@@ -20,7 +19,7 @@ jobs:
           configuration_path: .circleci/continue.yml
  
   # ---------------------------------------------
-  # Step 2: Run Tests + Save Logs + Save Changes
+  # Step 2: Run Tests + Upload ONLY Changed Files
   # ---------------------------------------------
   run-tests-and-save-artifacts:
     docker:
@@ -36,39 +35,43 @@ jobs:
             pip install -r requirements.txt
             pip install pytest
  
-      # ✅ Capture changed files list + full diff
+      # ✅ Capture ONLY changed files (exactly what you committed)
       - run:
-          name: Capture Final Changed Files
+          name: Collect Changed Files Only
           command: |
-            echo "Saving changed file list..."
-            git diff --name-only HEAD~1 HEAD > changed_files.txt
+            echo "Fetching main branch..."
+            git fetch origin main
  
-            echo "Saving full diff of final changes..."
-            git diff HEAD~1 HEAD > final_changes.diff
+            echo "Finding changed files..."
+            CHANGED_FILES=$(git diff --name-only origin/main...HEAD)
  
             echo "Changed files:"
-            cat changed_files.txt
+            echo "$CHANGED_FILES"
  
-      # ✅ Run tests and save logs
+            # Create folder to store only changed files
+            mkdir -p changed_files
+ 
+            # Copy only changed files into artifact folder
+            for file in $CHANGED_FILES; do
+              cp --parents "$file" changed_files/
+            done
+ 
+      # ✅ Run pytest and save logs
       - run:
           name: Run Tests and Save Logs
           command: |
             echo "Running pytest..."
             pytest tests/ > pytest.log 2>&1 || true
-            echo "Pytest finished"
  
-      # ✅ Upload all artifacts
+      # ✅ Upload pytest log artifact
       - store_artifacts:
           path: pytest.log
           destination: pytest.log
  
+      # ✅ Upload ONLY changed files artifact
       - store_artifacts:
-          path: changed_files.txt
-          destination: changed_files.txt
- 
-      - store_artifacts:
-          path: final_changes.diff
-          destination: final_changes.diff
+          path: changed_files
+          destination: changed_files
  
 workflows:
   setup-workflow:
