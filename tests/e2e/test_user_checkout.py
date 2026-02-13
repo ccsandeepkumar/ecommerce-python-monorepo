@@ -8,7 +8,6 @@ from services.order.service import create_order
 logging.basicConfig(level=logging.INFO)
 
 @pytest.mark.e2e
-def test_e2e():
 @pytest.mark.testrail("1510")
 def test_e2e_checkout_success():
     logging.info("TestRail ID: 1510 - E2E checkout success started")
