@@ -1,41 +1,20 @@
 version: 2.1
- 
+
+setup: true
+
+orbs:
+  continuation: circleci/continuation@0.4.0
+
 jobs:
-  pytest-pr-tests:
+  detect-and-continue:
     docker:
       - image: cimg/python:3.10
- 
     steps:
       - checkout
- 
-      - run:
-          name: Install Requirements
-          command: |
-            pip install -r requirements.txt
-            pip install pytest
- 
-      - run:
-          name: Run Pytest Tests
-          command: |
-            mkdir -p test-results
- 
-            pytest tests/ \
-              --junitxml=test-results/pytest-results.xml \
-              > pytest.log 2>&1 || true
- 
-      - store_test_results:
-          path: test-results
- 
-      - store_artifacts:
-          path: pytest.log
-          destination: pytest.log
- 
-      - store_artifacts:
-          path: test-results/pytest-results.xml
-          destination: pytest-results.xml
- 
+      - continuation/continue:
+          configuration_path: .circleci/continue.yml
+
 workflows:
-  version: 2
-  pr-workflow:
+  setup-workflow:
     jobs:
-      - pytest-pr-tests
+      - detect-and-continue
