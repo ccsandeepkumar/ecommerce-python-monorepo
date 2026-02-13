@@ -1,42 +1,66 @@
 version: 2.1
-
+ 
 setup: true
-
+ 
 orbs:
   continuation: circleci/continuation@0.4.0
-
+ 
 jobs:
   detect-and-continue:
     docker:
       - image: cimg/python:3.10
     steps:
       - checkout
+ 
       - continuation/continue:
           configuration_path: .circleci/continue.yml
-
-  run-tests-and-email:
+ 
+  run-tests-and-save-logs:
     docker:
       - image: cimg/python:3.10
+ 
     steps:
       - checkout
+ 
+      # ✅ Step 1: Install pytest
+      - run:
+          name: Install Test Dependencies
+          command: |
+            pip install pytest
+ 
+      # ✅ Step 2: Run tests and save output into pytest.log
       - run:
           name: Run Tests and Save Logs
           command: |
+            echo "Running pytest..."
             pytest > pytest.log 2>&1 || true
-
+            echo "Pytest finished"
+ 
+      # ✅ Step 3: Verify pytest.log exists
+      - run:
+          name: Verify Log File Exists
+          command: |
+            echo "Listing files..."
+            ls -l
+ 
+            if [ -f pytest.log ]; then
+              echo "pytest.log created successfully"
+              head -30 pytest.log
+            else
+              echo "ERROR: pytest.log was NOT created"
+              exit 1
+            fi
+ 
+      # ✅ Step 4: Store pytest.log as artifact (required for tool)
       - store_artifacts:
           path: pytest.log
           destination: pytest.log
-
-      - run:
-          name: Send Logs to Email
-          command: |
-            python send_email.py pytest.log
-
+ 
 workflows:
   setup-workflow:
     jobs:
       - detect-and-continue
-      - run-tests-and-email:
+ 
+      - run-tests-and-save-logs:
           requires:
             - detect-and-continue
