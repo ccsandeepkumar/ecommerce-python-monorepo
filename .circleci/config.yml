@@ -21,7 +21,7 @@ jobs:
  
             pytest tests/ \
               --junitxml=test-results/pytest-results.xml \
-> pytest.log 2>&1 || true
+              > pytest.log 2>&1 || true
  
       - store_test_results:
           path: test-results
