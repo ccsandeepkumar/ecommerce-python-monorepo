@@ -6,22 +6,15 @@ orbs:
   continuation: circleci/continuation@0.4.0
  
 jobs:
-  # -------------------------------
-  # Step 1: Continuation Setup Job
-  # -------------------------------
   detect-and-continue:
     docker:
       - image: cimg/python:3.10
- 
     steps:
       - checkout
  
       - continuation/continue:
           configuration_path: .circleci/continue.yml
  
-  # ---------------------------------------------
-  # Step 2: Run Only Changed Test Files + Logs
-  # ---------------------------------------------
   run-tests-and-save-logs:
     docker:
       - image: cimg/python:3.10
@@ -29,37 +22,27 @@ jobs:
     steps:
       - checkout
  
-      # ✅ Install pytest
+      # ✅ Step 1: Install pytest
       - run:
           name: Install Test Dependencies
           command: |
             pip install pytest
  
-      # ✅ Run pytest ONLY for committed/changed test files
+      # ✅ Step 2: Run tests and save output into pytest.log
       - run:
-          name: Run Only Changed Tests and Save Logs
+          name: Run Tests and Save Logs
           command: |
-            echo "Detecting changed test files..."
+            echo "Running pytest..."
+            pytest > pytest.log 2>&1 || true
+            echo "Pytest finished"
  
-            # Get changed files from last commit
-            CHANGED_TESTS=$(git diff --name-only HEAD~1 HEAD | grep -E "tests/.*\.py$" || true)
- 
-            # If no test files changed, skip pytest
-            if [ -z "$CHANGED_TESTS" ]; then
-              echo "No test files changed in this commit."
-              echo "NO_TESTS_CHANGED" > pytest.log
-            else
-              echo "Changed test files detected:"
-              echo "$CHANGED_TESTS"
- 
-              echo "Running pytest only for changed files..."
-              pytest $CHANGED_TESTS > pytest.log 2>&1 || true
-            fi
- 
-      # ✅ Verify pytest.log exists
+      # ✅ Step 3: Verify pytest.log exists
       - run:
           name: Verify Log File Exists
           command: |
+            echo "Listing files..."
+            ls -l
+ 
             if [ -f pytest.log ]; then
               echo "pytest.log created successfully"
               head -30 pytest.log
@@ -68,7 +51,7 @@ jobs:
               exit 1
             fi
  
-      # ✅ Upload pytest.log artifact (Tool fetches this)
+      # ✅ Step 4: Store pytest.log as artifact (required for tool)
       - store_artifacts:
           path: pytest.log
           destination: pytest.log
