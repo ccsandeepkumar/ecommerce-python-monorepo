@@ -6,61 +6,75 @@ orbs:
   continuation: circleci/continuation@0.4.0
  
 jobs:
+  # -----------------------------------
+  # Step 1: Continuation Setup Job
+  # -----------------------------------
   detect-and-continue:
     docker:
       - image: cimg/python:3.10
+ 
     steps:
       - checkout
  
       - continuation/continue:
           configuration_path: .circleci/continue.yml
  
-  run-tests-and-save-logs:
+  # ---------------------------------------------
+  # Step 2: Run Tests + Save Logs + Save Changes
+  # ---------------------------------------------
+  run-tests-and-save-artifacts:
     docker:
       - image: cimg/python:3.10
  
     steps:
       - checkout
  
-      # ✅ Step 1: Install pytest
+      # ✅ Install dependencies
       - run:
-          name: Install Test Dependencies
+          name: Install Dependencies
           command: |
+            pip install -r requirements.txt
             pip install pytest
  
-      # ✅ Step 2: Run tests and save output into pytest.log
+      # ✅ Capture changed files list + full diff
+      - run:
+          name: Capture Final Changed Files
+          command: |
+            echo "Saving changed file list..."
+            git diff --name-only HEAD~1 HEAD > changed_files.txt
+ 
+            echo "Saving full diff of final changes..."
+            git diff HEAD~1 HEAD > final_changes.diff
+ 
+            echo "Changed files:"
+            cat changed_files.txt
+ 
+      # ✅ Run tests and save logs
       - run:
           name: Run Tests and Save Logs
           command: |
             echo "Running pytest..."
-            pytest > pytest.log 2>&1 || true
+            pytest tests/ > pytest.log 2>&1 || true
             echo "Pytest finished"
  
-      # ✅ Step 3: Verify pytest.log exists
-      - run:
-          name: Verify Log File Exists
-          command: |
-            echo "Listing files..."
-            ls -l
- 
-            if [ -f pytest.log ]; then
-              echo "pytest.log created successfully"
-              head -30 pytest.log
-            else
-              echo "ERROR: pytest.log was NOT created"
-              exit 1
-            fi
- 
-      # ✅ Step 4: Store pytest.log as artifact (required for tool)
+      # ✅ Upload all artifacts
       - store_artifacts:
           path: pytest.log
           destination: pytest.log
+ 
+      - store_artifacts:
+          path: changed_files.txt
+          destination: changed_files.txt
+ 
+      - store_artifacts:
+          path: final_changes.diff
+          destination: final_changes.diff
  
 workflows:
   setup-workflow:
     jobs:
       - detect-and-continue
  
-      - run-tests-and-save-logs:
+      - run-tests-and-save-artifacts:
           requires:
             - detect-and-continue
