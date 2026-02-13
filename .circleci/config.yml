@@ -14,7 +14,29 @@ jobs:
       - continuation/continue:
           configuration_path: .circleci/continue.yml
 
+  run-tests-and-email:
+    docker:
+      - image: cimg/python:3.10
+    steps:
+      - checkout
+      - run:
+          name: Run Tests and Save Logs
+          command: |
+            pytest > pytest.log 2>&1 || true
+
+      - store_artifacts:
+          path: pytest.log
+          destination: pytest.log
+
+      - run:
+          name: Send Logs to Email
+          command: |
+            python send_email.py pytest.log
+
 workflows:
   setup-workflow:
     jobs:
       - detect-and-continue
+      - run-tests-and-email:
+          requires:
+            - detect-and-continue
