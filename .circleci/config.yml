@@ -1,27 +1,7 @@
 version: 2.1
  
-setup: true
- 
-orbs:
-  continuation: circleci/continuation@0.4.0
- 
 jobs:
-  # -----------------------------------
-  # Step 1: Continuation Setup Job
-  # -----------------------------------
-  detect-and-continue:
-    docker:
-      - image: cimg/python:3.10
-    steps:
-      - checkout
- 
-      - continuation/continue:
-          configuration_path: .circleci/continue.yml
- 
-  # ---------------------------------------------
-  # Step 2: Run Tests + Upload ONLY Changed Files
-  # ---------------------------------------------
-  run-tests-and-save-artifacts:
+  pytest-pr-tests:
     docker:
       - image: cimg/python:3.10
  
@@ -30,54 +10,37 @@ jobs:
  
       # ✅ Install dependencies
       - run:
-          name: Install Dependencies
+          name: Install Requirements
           command: |
             pip install -r requirements.txt
             pip install pytest
  
-      # ✅ Capture ONLY changed files (exactly what you committed)
+      # ✅ Run pytest + generate test report XML + save logs
       - run:
-          name: Collect Changed Files Only
+          name: Run Pytest Tests
           command: |
-            echo "Fetching main branch..."
-            git fetch origin main
+            mkdir -p test-results
  
-            echo "Finding changed files..."
-            CHANGED_FILES=$(git diff --name-only origin/main...HEAD)
+            pytest tests/ \
+              --junitxml=test-results/pytest-results.xml \
+> pytest.log 2>&1 || true
  
-            echo "Changed files:"
-            echo "$CHANGED_FILES"
+      # ✅ Upload structured test results (CircleCI parses pass/fail)
+      - store_test_results:
+          path: test-results
  
-            # Create folder to store only changed files
-            mkdir -p changed_files
- 
-            # Copy only changed files into artifact folder
-            for file in $CHANGED_FILES; do
-              cp --parents "$file" changed_files/
-            done
- 
-      # ✅ Run pytest and save logs
-      - run:
-          name: Run Tests and Save Logs
-          command: |
-            echo "Running pytest..."
-            pytest tests/ > pytest.log 2>&1 || true
- 
-      # ✅ Upload pytest log artifact
+      # ✅ Upload full console log for stack traces
       - store_artifacts:
           path: pytest.log
           destination: pytest.log
  
-      # ✅ Upload ONLY changed files artifact
+      # ✅ Upload XML report as artifact also
       - store_artifacts:
-          path: changed_files
-          destination: changed_files
+          path: test-results/pytest-results.xml
+          destination: pytest-results.xml
  
 workflows:
-  setup-workflow:
+  version: 2
+  pr-workflow:
     jobs:
-      - detect-and-continue
- 
-      - run-tests-and-save-artifacts:
-          requires:
-            - detect-and-continue
+      - pytest-pr-tests
